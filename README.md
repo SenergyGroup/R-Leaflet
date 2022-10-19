@@ -11,9 +11,11 @@ Once you have acquired an API key you are ready to go!
 
 ## Step 1: The setup
 
-Start by installing the `tidycensus` package.
+Start by installing the `tidycensus` package and `tidyverse`.
 
     install.packages("tidycensus")
+    install.packages("tidyverse")
+    library(tidycensus)
     library(tidycensus)
 
 Before pulling data, I like to use the following option for pulling
@@ -46,9 +48,7 @@ To make things easier on myself, I created a list variable that contains
 each of the API codes I want to analyze.
 
     acs2020 <-   c(
-        Hispanic = "B03002_012",
-        White = "B03002_003",
-        Black = "B03002_004"
+        Black_or_AA = "B03002_004"
       )
 
 ## Step 3: Pulling Census Data
@@ -90,3 +90,71 @@ First, install `leaflet` if you don’t have it already.
 
     install.packages("leaflet")
     library(leaflet)
+
+You can create a base map with no data using the following code.
+
+    map = leaflet() %>% 
+      addTiles()
+
+You will need to create a palette for the colors you want displayed on
+your map. To do this, you can find the quartiles and base your colors on
+that.
+
+The code below shows the full process of finding the quartiles and
+creating the palettes using “bins.”
+
+    quantile(ZIP_race$estimate)
+
+    zbinsb <- c(0,0.1,30.0,598.5,82872.0)
+    zpalb <- colorBin("YlOrRd", domain = ZIP_race$estimate, bins = zbinsb)
+
+Now can add the Census data using the `addPolygons` function and
+specifying data and palette we just made.
+
+    map = leaflet() %>% 
+      addTiles() %>% 
+      addPolygons(data = ZIP_race,
+                  fillColor = ~zpalb(estimate)
+        
+      )
+
+You learn more about Leaflet customization on their website
+<https://leafletjs.com/>
+
+Below is an example of a fully customized map. The possiblities are
+endless!
+
+    map = leaflet() %>% 
+      
+      setView(lng = 74.0060, lat = 40.7128, zoom = 20.25) %>% 
+
+      addProviderTiles("CartoDB.Positron") %>%
+      
+      addPolygons(data = ZIP_race,
+                  fillColor = ~zpalb(estimate),
+                  opacity = 1,
+                  fillOpacity = 0.6,               
+                  label = ZIP_race$NAME,
+                  labelOptions = labelOptions(
+                   textsize = "14px",
+                   style = list(
+                     "font-weight" = "bold",
+                     padding = "5px"
+                   )
+                 ),
+                  group = "Black or African American",
+                  popup = paste0("Location: ", ZIP_race$NAME, "<br>",
+                                  "Count: ", ZIP_race$estimate),
+                  highlightOptions = highlightOptions(
+                    weight = 2,
+                    color = "#A4F2F4",
+                    fillOpacity = 0.6,
+                    bringToFront = TRUE)
+                  ) %>% 
+      addLegend(data = ZIP_race,
+        pal = zpalb, 
+        group = "Black or African American",
+        values = ~estimate,
+        opacity = 0.6, 
+        title = "Count: Black or African American",
+        position = "bottomleft")
